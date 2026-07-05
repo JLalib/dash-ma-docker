@@ -1,9 +1,9 @@
 services:
   dashma:
-    image: jlalib/dashma:latest
+    build: .
     container_name: dashma
     restart: unless-stopped
-    # Required for ICMP ping monitoring (if using ping feature)
+    # Required for ICMP ping monitoring
     cap_add:
       - NET_RAW
     ports:
