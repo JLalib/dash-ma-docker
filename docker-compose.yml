@@ -1,2 +1,9 @@
-# docker-compose.yml not found in post
-# Please add manually
+services:
+  dashma:
+    container_name: dashma
+    image: jlalib/dashma:latest # Apuntando a tu repositorio
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config:/app/config # Donde guardaremos nuestros enlaces
+    restart: unless-stopped
