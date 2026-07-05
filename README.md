@@ -1,4 +1,4 @@
-# Dashma en Docker
+# Dashma Docker Setup
 
 Un Dashboard Minimalista inspirado en el concepto japonés "Ma" 🐳🏯
 
@@ -14,19 +14,19 @@ El objetivo de hoy es volver a lo esencial. En un mundo lleno de dashboards comp
 
 ## ✨ Características principales
 
-- **Gestión de enlaces**: Permite gestionar una lista de enlaces con una tipografía cuidada y un diseño responsivo.
-- **Negación del ruido**: Solo los enlaces que realmente usas, presentados de forma elegante.
+- **Ligero y rápido**: Casi sin consumo de recursos, carga instantánea.
+- **Diseño minimalista**: Inspirado en el concepto japonés "Ma" (空間), el espacio negativo como elemento de diseño.
+- **Gestión de enlaces**: Permite crear una lista de accesos directos a tus servicios favoritos.
+- **Tipografía cuidada**: Texto legible y estéticamente agradable.
 - **Diseño responsivo**: Se adapta a diferentes tamaños de pantalla.
-- **Configuración sencilla**: Archivos de configuración simples para definir tus enlaces.
-- **Ligero y rápido**: Casi instantáneo en cargar, ideal para dispositivos con recursos limitados.
-- **Fácil de personalizar**: Posibilidad de ajustar hoja de estilos y disposición de elementos para avanzados.
-- **Docker oficial**: Imagen disponible en Docker Hub (jlalib/dashma:latest).
+- **Fácil de configurar**: Archivos de configuración sencillos en `/app/config`.
+- **Contenedor Docker**: Aislamiento total y despliegue sencillo con `docker-compose up -d`.
 
 ## 📋 Requisitos del sistema
 
 - Docker y Docker Compose instalados
 - Puerto 3000 disponible (o configurable)
-- Espacio en disco para el archivo de configuración (`./config`)
+- Espacio en disco mínimo para la configuración
 
 ## 🐳 Instalación
 
@@ -37,13 +37,31 @@ Crea un archivo `docker-compose.yml` con el siguiente contenido:
 ```yaml
 services:
   dashma:
+    image: jlalib/dashma:latest
     container_name: dashma
-    image: jlalib/dashma:latest # Apuntando a tu repositorio
+    restart: unless-stopped
+    # Required for ICMP ping monitoring (if using ping feature)
+    cap_add:
+      - NET_RAW
     ports:
       - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # COOKIE_SECURE: Set to 'true' only if NOT behind a reverse proxy (direct HTTPS)
+      # Leave unset or 'false' when behind Caddy/nginx/Traefik that handles SSL
+      # - COOKIE_SECURE=true
+      # Optional: Set a custom session secret for enhanced security
+      # In Portainer, add this as an environment variable:
+      # SESSION_SECRET=your-secure-random-string-minimum-32-characters
+      # - SESSION_SECRET=${SESSION_SECRET}
     volumes:
-      - ./config:/app/config # Donde guardaremos nuestros enlaces
-    restart: unless-stopped
+      - dashma_data:/app/src/data
+      - dashma_uploads:/app/src/public/uploads
+
+volumes:
+  dashma_data:
+  dashma_uploads:
 ```
 
 Luego, inicia el servicio:
@@ -54,53 +72,73 @@ docker compose up -d
 
 ## ⚙️ Configuración
 
-### Archivo de configuración
+La configuración se realiza mediante archivos JSON o YAML en el directorio `./config` (mapeado a `/app/config` dentro del contenedor).
 
-El contenedor espera un directorio `/app/config` montado desde el host. Dentro de ese directorio, puedes crear o modificar los archivos de configuración de Dashma (generalmente un archivo JSON o YAML que define tus enlaces y su apariencia).
+### Estructura de configuración
 
-Por defecto, el contenedor busque una configuración en `/app/config`. Puedes empezar con un archivo vacío y luego añadir tus enlaces mediante la interfaz web o editando directamente los archivos de configuración.
+Crea un archivo `config.json` dentro de `./config` con el siguiente formato:
 
-### Variables de entorno
+```json
+{
+  "title": "Mi Dashboard",
+  "items": [
+    {
+      "title": "Plex",
+      "url": "http://plex.local:32400/web",
+      "icon": "plex"
+    },
+    {
+      "title": "Portainer",
+      "url": "http://portainer.local:9000",
+      "icon": "docker"
+    }
+    // Añade más elementos según necesites
+  ],
+  "theme": {
+    "background": "#ffffff",
+    "text": "#333333",
+    "accent": "#0066cc"
+  }
+}
+```
 
-La imagen no requiere variables de entorno para su funcionamiento básico. Sin embargo, revisa la documentación de la imagen para ver si hay opciones avanzadas (como cambiar el puerto interno, etc.).
+Opciones disponibles para `icon`: Puedes usar nombres de Font Awesome 5 o dejar vacío para un icono genérico.
 
-### Puertos
+### Personalización avanzada
 
-- `3000`: Puerto por defecto para la interfaz web. Cambiar el mapeo si hay conflictos (ej: `"8080:3000"`).
+Para los usuarios que quieran llevar el minimalismo al siguiente nivel, Dashma permite ajustes finos en su hoja de estilos y en la disposición de los elementos, manteniendo siempre la coherencia visual del concepto "Ma".
 
 ## 🚀 Primeros pasos
 
-1. **Crear el directorio y el archivo docker-compose.yml**
+1. **Crear el directorio y los archivos**
    ```bash
    mkdir dash-ma-docker && cd dash-ma-docker
-   nano docker-compose.yml   # pega el contenido de arriba
-   ```
-
-2. **Crear el directorio de configuración**
-   ```bash
    mkdir config
+   nano docker-compose.yml   # pega el contenido de arriba
+   nano config/config.json   # define tus enlaces y título
    ```
 
-3. **Iniciar el contenedor**
+2. **Iniciar el contenedor**
    ```bash
    docker compose up -d
    ```
 
-4. **Acceder a la interfaz web**
-   Abre tu navegador y ve a `http://<ip-de-tu-servidor>:3000`.
-   - Verás una pantalla limpia donde puedes comenzar a añadir tus enlaces favoritos.
-   - La configuración se realiza de forma sencilla, permitiendo añadir servicios sin recargar la vista.
+3. **Acceder a la interfaz**
+   Abre tu navegador y ve a `http://<ip-de-tu-servidor>:3000`
+   - Deberías ver una pantalla limpia con tus enlaces.
+   - El espacio es el protagonista, siguiendo la filosofía "Ma".
 
-5. **Personalizar (opcional)**
-   - Para los usuarios que quieran llevar el minimalismo al siguiente nivel, Dashma permite ajustes finos en su hoja de estilos y en la disposición de los elementos, manteniendo siempre la coherencia visual del concepto "Ma".
-   - Consulta la documentación del proyecto original para más detalles sobre cómo personalizar la apariencia.
+4. **Ajustar y disfrutar**
+   - Modifica `config/config.json` para añadir, eliminar o reordenar enlaces.
+   - Los cambios se aplican en tiempo real (puede requerir recargar la página).
+   - Experimenta con colores y temas para adaptarlo a tu gusto.
 
 ## 💡 Casos de uso
 
-- **Página de inicio personal**: Centraliza tus enlaces más usados (servicios self-hosted, marcadores importantes, etc.) en una pantalla libre de distracciones.
-- **Dashboard para equipos**: Comparte una instancia con tu equipo de trabajo o familiares para acceder rápidamente a herramientas comunes.
-- **Entorno de pruebas**: Ideal para laboratorios o entornos de desarrollo donde se necesita una página de inicio ligera y personalizable.
-- **Integración con otros servicios**: Combina con autenticación externa (como Authelia o OAuth2 Proxy) si deseas proteger el acceso.
+- **Página de inicio personal**: Reemplaza tu página de inicio del navegador con un dashboard personalizado.
+- **Centro de control del Home Lab**: Acceso rápido a todos tus servicios autoalojados.
+- **Compartir con familia o equipo**: Configura enlaces útiles para otros usuarios de tu red.
+- **Minimalismo productivo**: Elimina el ruido visual y enfócate en lo esencial.
 
 ## 🔒 HTTPS con Caddy (acceso remoto seguro)
 
@@ -147,8 +185,8 @@ docker compose ps
 ```
 
 ### Copia de seguridad de la configuración
-Solo necesitas respaldar el directorio `config`:
 ```bash
+# Solo necesitas respaldar el directorio de configuración
 cp -r ./config ./config-backup-$(date +%Y%m%d)
 ```
 

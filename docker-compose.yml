@@ -1,9 +1,27 @@
 services:
   dashma:
+    image: jlalib/dashma:latest
     container_name: dashma
-    image: jlalib/dashma:latest # Apuntando a tu repositorio
+    restart: unless-stopped
+    # Required for ICMP ping monitoring (if using ping feature)
+    cap_add:
+      - NET_RAW
     ports:
       - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # COOKIE_SECURE: Set to 'true' only if NOT behind a reverse proxy (direct HTTPS)
+      # Leave unset or 'false' when behind Caddy/nginx/Traefik that handles SSL
+      # - COOKIE_SECURE=true
+      # Optional: Set a custom session secret for enhanced security
+      # In Portainer, add this as an environment variable:
+      # SESSION_SECRET=your-secure-random-string-minimum-32-characters
+      # - SESSION_SECRET=${SESSION_SECRET}
     volumes:
-      - ./config:/app/config # Donde guardaremos nuestros enlaces
-    restart: unless-stopped
+      - dashma_data:/app/src/data
+      - dashma_uploads:/app/src/public/uploads
+
+volumes:
+  dashma_data:
+  dashma_uploads:
